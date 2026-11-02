@@ -214,7 +214,7 @@ test('first visit: pick an avatar, reach the map and finish a lesson', async ({ 
   await expect(page.getByText('Hi Riya!')).toBeVisible();
   await noSideways(page);
   await page.getByText('Alphabet Island').click();
-  await expect(page.locator('[data-lesson="en-1-2"]')).toBeDisabled();
+  await expect(page.locator('[data-lesson="en-9-2"]')).toBeEnabled();
   await page.locator('[data-lesson="en-1-1"]').click({ force: true });
   await playToEnd(page);
   await page.getByRole('button', { name: 'Continue' }).click();
@@ -306,14 +306,20 @@ test('the lesson road fits the screen', async ({ page }) => {
   expect(widest).toBeLessThanOrEqual(size.width);
 });
 
-test('the big test opens only after all module tests', async ({ page }) => {
-  await seed(page, 11);
+test('every lesson and test is open from the start', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: '🐼' }).click();
+  await page.getByRole('button', { name: 'Start' }).click();
+  for (const world of ['Alphabet Island', 'अक्षर Garden']) {
+    await page.getByText(world).click();
+    await expect(page.locator('.node').first()).toBeVisible();
+    await expect(page.locator('.node:disabled')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Big test' })).toBeEnabled();
+    await page.getByRole('button', { name: 'Go back' }).click();
+  }
   await page.getByText('Alphabet Island').click();
-  await expect(page.getByRole('button', { name: 'Big test' })).toBeDisabled();
-  await page.evaluate(() => undefined);
-  await seed(page, 12);
-  await page.getByText('Alphabet Island').click();
-  await expect(page.getByRole('button', { name: 'Big test' })).toBeEnabled();
+  await page.locator('[data-test="en-12"]').click();
+  await expect(page.locator('.stage')).toBeVisible();
 });
 
 test('Hindi questions say the letter out loud and show it', async ({ page }) => {

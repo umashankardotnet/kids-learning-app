@@ -16,7 +16,14 @@ const OFFSETS = [0, 34, 52, 34, 0, -34, -52, -34];
 
 export function SubjectPath({ subject, onBack, onLesson, onTest, onFinalTest }: Props) {
   const { lessonsDone, tests } = useApp();
-  let open = true;
+
+  // Everything is open; the first unfinished step is still highlighted as a suggestion.
+  let foundNext = false;
+  const isNext = (done: unknown) => {
+    if (done || foundNext) return false;
+    foundNext = true;
+    return true;
+  };
 
   // Bring the next step into view, so a child never has to hunt down a long road.
   useEffect(() => {
@@ -31,47 +38,40 @@ export function SubjectPath({ subject, onBack, onLesson, onTest, onFinalTest }: 
       </header>
       <div className="road">
         {subject.modules.map((mod) => {
-          const moduleOpen = open;
           const test = tests[mod.id];
           const nodes = mod.lessons.map((lesson, i) => {
             const done = lessonsDone[lesson.id];
-            const unlocked = open;
-            if (!done) open = false;
+            const next = isNext(done);
             return (
               <motion.button
                 key={lesson.id}
-                className={`node ${done ? 'done' : ''} ${unlocked && !done ? 'next' : ''}`}
+                className={`node ${done ? 'done' : ''} ${next ? 'next' : ''}`}
                 style={{ position: 'relative', left: OFFSETS[i % OFFSETS.length] }}
-                disabled={!unlocked}
                 onClick={() => onLesson(mod, lesson)}
-                animate={unlocked && !done ? { scale: [1, 1.1, 1] } : {}}
+                animate={next ? { scale: [1, 1.1, 1] } : {}}
                 transition={{ repeat: Infinity, duration: 1.4 }}
                 aria-label={lesson.title}
                 data-lesson={lesson.id}
               >
-                {unlocked ? lesson.emoji : '🔒'}
+                {lesson.emoji}
               </motion.button>
             );
           });
-          const testUnlocked = open;
-          if (!test) open = false;
           return (
-            <section key={mod.id} className={`road-module ${moduleOpen ? '' : 'locked'}`}>
+            <section key={mod.id} className="road-module">
               <div className="module-sign" style={{ borderColor: subject.color }}>
                 <strong>{mod.number}. {mod.title}</strong>
                 <span>{mod.outcome}</span>
               </div>
               {nodes}
-              <button className={`node test ${test ? 'done' : ''} ${testUnlocked && !test ? 'next' : ''}`} disabled={!testUnlocked} onClick={() => onTest(mod)} aria-label={`${mod.title} test`} data-test={mod.id}>
-                {testUnlocked ? '🏅' : '🔒'}
+              <button className={`node test ${test ? 'done' : ''} ${isNext(test) ? 'next' : ''}`} onClick={() => onTest(mod)} aria-label={`${mod.title} test`} data-test={mod.id}>
+                🏅
               </button>
               {test && <Stars count={test.stars} />}
             </section>
           );
         })}
-        <button className="node test final" disabled={!open} onClick={onFinalTest} aria-label="Big test">
-          {open ? '🏆' : '🔒'}
-        </button>
+        <button className="node test final" onClick={onFinalTest} aria-label="Big test">🏆</button>
         {tests[`${subject.id}-final`] && <Stars count={tests[`${subject.id}-final`].stars} />}
       </div>
     </div>
